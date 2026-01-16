@@ -364,24 +364,12 @@ This is your permanent backend endpoint.
 ## 8) Insert your API URL in the index.html 
 
 '''
-...
 
-<script>
-const API_URL = "YOUR API URL"; // const API_URL = "https://cv-chatbot-api.azurewebsites.net/api/chat";
 
-async function ask() {
-  const q = document.getElementById("q").value;
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: q })
-  });
-  const data = await res.json();
-  document.getElementById("a").textContent = data.reply || data.error;
-}
-</script>
-</body>
-</html>
+<script>  
+const API_URL = "YOUR API URL"; // const API_URL = "https://cv-chatbot-api.azurewebsites.net/api/chat";  
+</script>  
+
 '''
 
 ---
