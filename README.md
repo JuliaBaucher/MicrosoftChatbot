@@ -1,6 +1,4 @@
-# MicrosoftChatbot
-
-# AI CV Chatbot with Azure OpenAI  
+# AI CV Chatbot with Microsoft Azure OpenAI  
 Static website (GitHub Pages) + Azure Function backend
 
 This guide reflects the **exact, working setup** discussed in this conversation, aligned with Azure’s current UI (2026), and mirrors the same architecture you previously used with AWS and Google Cloud.
