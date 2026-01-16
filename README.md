@@ -361,25 +361,13 @@ This is your permanent backend endpoint.
 
 ---
 
-## 8) Create the frontend (index.html)
+## 8) Insert your API URL in the index.html 
 
 '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>AI CV Assistant</title>
-</head>
-<body>
-  <h2>AI CV Assistant</h2>
-
-  <textarea id="q" rows="4" cols="60"></textarea><br>
-  <button onclick="ask()">Ask</button>
-
-  <pre id="a"></pre>
+...
 
 <script>
-const API_URL = "https://cv-chatbot-api.azurewebsites.net/api/chat";
+const API_URL = "YOUR API URL"; // const API_URL = "https://cv-chatbot-api.azurewebsites.net/api/chat";
 
 async function ask() {
   const q = document.getElementById("q").value;
