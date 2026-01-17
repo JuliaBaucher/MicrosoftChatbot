@@ -197,47 +197,62 @@ Function App → Functions → chat → Code + Test
 Replace **everything** in `index.js` with:
 
 '''
+// api/chat/index.js (CommonJS)
+// Returns PLAIN TEXT (no JSON braces) so your UI displays cleanly.
+
 module.exports = async function (context, req) {
+  // --- CORS (GitHub Pages) ---
   const corsHeaders = {
-    "Access-Control-Allow-Origin": "https://yourusername.github.io",
+    "Access-Control-Allow-Origin": "https://juliabaucher.github.io",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type"
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400"
   };
 
+  // Preflight
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: corsHeaders };
     return;
   }
 
   try {
-    const userMessage = (req.body && req.body.message) ? String(req.body.message) : "";
+    // --- Validate input ---
+    const userMessage =
+      (req.body && req.body.message) ? String(req.body.message).trim() : "";
+
     if (!userMessage) {
       context.res = {
         status: 400,
-        headers: corsHeaders,
-        body: { error: "Missing message" }
+        headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
+        body: "Missing 'message' in request body."
       };
       return;
     }
 
-    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+    // --- Env vars ---
+    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;      // e.g. https://<name>.openai.azure.com
     const apiKey = process.env.AZURE_OPENAI_API_KEY;
-    const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;
+    const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;  // your deployment name
     const system = process.env.SYSTEM_MESSAGE || "You are a helpful CV assistant.";
 
     if (!endpoint || !apiKey || !deployment) {
       context.res = {
         status: 500,
-        headers: corsHeaders,
-        body: { error: "Missing Azure OpenAI configuration" }
+        headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
+        body: "Server misconfigured. Missing AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, or AZURE_OPENAI_DEPLOYMENT."
       };
       return;
     }
 
-    const apiVersion = "2024-06-01";
-    const url = `${endpoint.replace(/\/$/, "")}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
+    // API version for chat completions
+    const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-06-01";
 
-    const response = await fetch(url, {
+    // IMPORTANT: endpoint must be base only (no /openai/...)
+    const base = endpoint.replace(/\/+$/, "");
+    const url = `${base}/openai/deployments/${encodeURIComponent(deployment)}/chat/completions?api-version=${encodeURIComponent(apiVersion)}`;
+
+    // --- Call Azure OpenAI ---
+    const resp = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -253,31 +268,45 @@ module.exports = async function (context, req) {
       })
     });
 
-    const text = await response.text();
-    if (!response.ok) {
+    const raw = await resp.text();
+
+    if (!resp.ok) {
+      // Return upstream error as plain text (easy to debug)
       context.res = {
         status: 500,
-        headers: corsHeaders,
-        body: { error: text }
+        headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
+        body: `Azure OpenAI error ${resp.status}: ${raw}`
       };
       return;
     }
 
-    const data = JSON.parse(text);
-    const reply = data?.choices?.[0]?.message?.content || "";
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      context.res = {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
+        body: "Azure OpenAI returned a non-JSON response."
+      };
+      return;
+    }
 
+    const reply = (data?.choices?.[0]?.message?.content || "").trim();
+    const safeReply = reply || "Sorry — I couldn't generate an answer.";
+
+    // ✅ Return PLAIN TEXT (no JSON braces)
     context.res = {
       status: 200,
-      headers: corsHeaders,
-      body: { reply }
+      headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
+      body: safeReply
     };
-
   } catch (err) {
-    context.log(err);
+    context.log("Azure Function error:", err);
     context.res = {
       status: 500,
-      headers: corsHeaders,
-      body: { error: err.message }
+      headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
+      body: err?.message || String(err)
     };
   }
 };
