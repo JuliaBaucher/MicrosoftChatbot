@@ -11,7 +11,7 @@ You need:
 
 - A GitHub account  
 - A Microsoft Azure account with an active subscription  
-- A computer (Windows or macOS)
+
 
 Prepare two texts (copy–paste later):
 
