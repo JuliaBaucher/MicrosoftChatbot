@@ -1,4 +1,4 @@
-# AI CV Chatbot with Microsoft Azure OpenAI  
+# AI CV Chatbot with Azure OpenAI  
 Static website (GitHub Pages) + Azure Function backend
 
 This guide reflects the **exact, working setup** discussed in this conversation, aligned with Azure’s current UI (2026), and mirrors the same architecture you previously used with AWS and Google Cloud.
@@ -11,7 +11,7 @@ You need:
 
 - A GitHub account  
 - A Microsoft Azure account with an active subscription  
-
+- A computer (Windows or macOS)
 
 Prepare two texts (copy–paste later):
 
@@ -55,10 +55,10 @@ Do not invent details.
 5. Fill in the settings:
 
    Resource group  
-   `chatbot-yourname-resourcegroup`
+   `cv-chatbot-rg`
 
    Instance name  
-   `chatbot-yourname-instance`
+   `cv-chatbot-instance`
 
    Region  
    `France Central`
@@ -75,7 +75,7 @@ This is **normal** because **no model is deployed yet**.
 
 To confirm the resource exists:
 - Go to **All resources**
-- Verify that `chatbot-yourname-instance` appears and is **Running**
+- Verify that `cv-chatbot-instance` appears and is **Running**
 
 ---
 
@@ -85,7 +85,7 @@ To confirm the resource exists:
    https://ai.azure.com/
 
 2. Select your created instance:  
-   `chatbot-yourname-instance`
+   `cv-chatbot-instance`
 
 3. In the left menu, click **Model catalog**
 
@@ -108,7 +108,7 @@ To confirm the resource exists:
 Use the **exact format below**:
 
 ENDPOINT  
-https://chatbot-yourname-instance.cognitiveservices.azure.com/
+Take the URL only. Example https://cv-chatbot-instance.cognitiveservices.azure.com/
 
 API KEY  
 <your-key-1>
@@ -143,10 +143,10 @@ This function is your backend API, equivalent to AWS Lambda or Google Cloud Func
 5. On the next screen:
 
    Resource group  
-    `chatbot-yourname-resourcegroup`
+   `cv-chatbot-rg`
 
    Function App name  
-   `chatbot-yourname-function`
+   `cv-chatbot-api`
 
 6. Runtime stack:
    - Node.js
@@ -168,7 +168,7 @@ Wait until the Function App is **Running**
 
 ### Step 4.1 — Create HTTP-triggered function
 
-1. Open **Function App** → `chatbot-yourname-function`
+1. Open **Function App** → `cv-chatbot-api`
 2. Go to **Functions**
 3. Click **Create**
 4. Choose **Create in Azure portal**
@@ -185,7 +185,7 @@ Wait until the Function App is **Running**
 
 Your backend endpoint will be:
 
-https://chatbot-yourname-function.azurewebsites.net/api/chat
+https://cv-chatbot-api.azurewebsites.net/api/chat
 
 ---
 
@@ -194,65 +194,50 @@ https://chatbot-yourname-function.azurewebsites.net/api/chat
 Go to:
 
 Function App → Functions → chat → Code + Test  
-Replace **everything** in `index.js` with the code below & your github URL for  "Access-Control-Allow-Origin": "https://yourname.github.io",  
+Replace **everything** in `index.js` with:
 
 '''
-// api/chat/index.js (CommonJS)
-// Returns PLAIN TEXT (no JSON braces) so your UI displays cleanly.
-
 module.exports = async function (context, req) {
-  // --- CORS (GitHub Pages) ---
   const corsHeaders = {
-    "Access-Control-Allow-Origin": "https://juliabaucher.github.io",  
+    "Access-Control-Allow-Origin": "https://yourusername.github.io",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Max-Age": "86400"
+    "Access-Control-Allow-Headers": "Content-Type"
   };
 
-  // Preflight
   if (req.method === "OPTIONS") {
     context.res = { status: 204, headers: corsHeaders };
     return;
   }
 
   try {
-    // --- Validate input ---
-    const userMessage =
-      (req.body && req.body.message) ? String(req.body.message).trim() : "";
-
+    const userMessage = (req.body && req.body.message) ? String(req.body.message) : "";
     if (!userMessage) {
       context.res = {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
-        body: "Missing 'message' in request body."
+        headers: corsHeaders,
+        body: { error: "Missing message" }
       };
       return;
     }
 
-    // --- Env vars ---
-    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;      // your endpoint name
+    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
     const apiKey = process.env.AZURE_OPENAI_API_KEY;
-    const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;  // your deployment name
+    const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;
     const system = process.env.SYSTEM_MESSAGE || "You are a helpful CV assistant.";
 
     if (!endpoint || !apiKey || !deployment) {
       context.res = {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
-        body: "Server misconfigured. Missing AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, or AZURE_OPENAI_DEPLOYMENT."
+        headers: corsHeaders,
+        body: { error: "Missing Azure OpenAI configuration" }
       };
       return;
     }
 
-    // API version for chat completions
-    const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-06-01";
+    const apiVersion = "2024-06-01";
+    const url = `${endpoint.replace(/\/$/, "")}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
 
-    // IMPORTANT: endpoint must be base only (no /openai/...)
-    const base = endpoint.replace(/\/+$/, "");
-    const url = `${base}/openai/deployments/${encodeURIComponent(deployment)}/chat/completions?api-version=${encodeURIComponent(apiVersion)}`;
-
-    // --- Call Azure OpenAI ---
-    const resp = await fetch(url, {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -268,45 +253,31 @@ module.exports = async function (context, req) {
       })
     });
 
-    const raw = await resp.text();
-
-    if (!resp.ok) {
-      // Return upstream error as plain text (easy to debug)
+    const text = await response.text();
+    if (!response.ok) {
       context.res = {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
-        body: `Azure OpenAI error ${resp.status}: ${raw}`
+        headers: corsHeaders,
+        body: { error: text }
       };
       return;
     }
 
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch (e) {
-      context.res = {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
-        body: "Azure OpenAI returned a non-JSON response."
-      };
-      return;
-    }
+    const data = JSON.parse(text);
+    const reply = data?.choices?.[0]?.message?.content || "";
 
-    const reply = (data?.choices?.[0]?.message?.content || "").trim();
-    const safeReply = reply || "Sorry — I couldn't generate an answer.";
-
-    // ✅ Return PLAIN TEXT (no JSON braces)
     context.res = {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
-      body: safeReply
+      headers: corsHeaders,
+      body: { reply }
     };
+
   } catch (err) {
-    context.log("Azure Function error:", err);
+    context.log(err);
     context.res = {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
-      body: err?.message || String(err)
+      headers: corsHeaders,
+      body: { error: err.message }
     };
   }
 };
@@ -330,7 +301,7 @@ Add:
 Name  
 AZURE_OPENAI_ENDPOINT  
 Value  
-https://chatbot-yourname-instance.cognitiveservices.azure.com/
+https://cv-chatbot-instance.cognitiveservices.azure.com/
 
 Name  
 AZURE_OPENAI_API_KEY  
@@ -366,7 +337,7 @@ Function App → API → CORS
 
 Add allowed origin:
 
-https://yourname.github.io
+https://yourusername.github.io
 
 Do NOT:
 - Enable Access-Control-Allow-Credentials
@@ -384,21 +355,45 @@ Functions → chat → Get Function URL
 
 Copy:
 
-https://chatbot-yourname-function.azurewebsites.net/api/chat
+https://cv-chatbot-api.azurewebsites.net/api/chat
 
 This is your permanent backend endpoint.
 
 ---
 
-## 8) Insert your API URL in the index.html 
+## 8) Create the frontend (index.html)
 
 '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AI CV Assistant</title>
+</head>
+<body>
+  <h2>AI CV Assistant</h2>
 
+  <textarea id="q" rows="4" cols="60"></textarea><br>
+  <button onclick="ask()">Ask</button>
 
-<script>  
-const API_URL = "YOUR API URL"; // const API_URL = "https://chatbot-yourname-function.azurewebsites.net/api/chat";  
-</script>  
+  <pre id="a"></pre>
 
+<script>
+const API_URL = "https://cv-chatbot-api.azurewebsites.net/api/chat";
+
+async function ask() {
+  const q = document.getElementById("q").value;
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: q })
+  });
+  const data = await res.json();
+  document.getElementById("a").textContent = data.reply || data.error;
+}
+</script>
+</body>
+</html>
 '''
 
 ---
