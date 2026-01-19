@@ -1,3 +1,16 @@
+# Watch the demo video 
+
+
+
+
+
+
+
+Uploading MicrosoftChatbot.mp4…
+
+
+
+
 # AI CV Chatbot with Azure OpenAI  
 Static website (GitHub Pages) + Azure Function backend
 
