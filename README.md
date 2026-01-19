@@ -55,10 +55,10 @@ Do not invent details.
 5. Fill in the settings:
 
    Resource group  
-   `cv-chatbot-rg`
+   `chatbot-yourname-resourcegroup`
 
    Instance name  
-   `cv-chatbot-openai`
+   `chatbot-yourname-instance`
 
    Region  
    `France Central`
@@ -75,7 +75,7 @@ This is **normal** because **no model is deployed yet**.
 
 To confirm the resource exists:
 - Go to **All resources**
-- Verify that `cv-chatbot-openai` appears and is **Running**
+- Verify that `chatbot-yourname-instance` appears and is **Running**
 
 ---
 
@@ -85,7 +85,7 @@ To confirm the resource exists:
    https://ai.azure.com/
 
 2. Select your created instance:  
-   `cv-chatbot-openai`
+   `chatbot-yourname-instance`
 
 3. In the left menu, click **Model catalog**
 
@@ -108,7 +108,7 @@ To confirm the resource exists:
 Use the **exact format below**:
 
 ENDPOINT  
-https://cv-chatbot-openai.cognitiveservices.azure.com/
+https://chatbot-yourname-instance.cognitiveservices.azure.com/
 
 API KEY  
 <your-key-1>
@@ -143,10 +143,10 @@ This function is your backend API, equivalent to AWS Lambda or Google Cloud Func
 5. On the next screen:
 
    Resource group  
-   `cv-chatbot-rg`
+    `chatbot-yourname-resourcegroup`
 
    Function App name  
-   `cv-chatbot-api`
+   `chatbot-yourname-function`
 
 6. Runtime stack:
    - Node.js
@@ -168,7 +168,7 @@ Wait until the Function App is **Running**
 
 ### Step 4.1 — Create HTTP-triggered function
 
-1. Open **Function App** → `cv-chatbot-api`
+1. Open **Function App** → `chatbot-yourname-function`
 2. Go to **Functions**
 3. Click **Create**
 4. Choose **Create in Azure portal**
@@ -185,7 +185,7 @@ Wait until the Function App is **Running**
 
 Your backend endpoint will be:
 
-https://cv-chatbot-api.azurewebsites.net/api/chat
+https://chatbot-yourname-function.azurewebsites.net/api/chat
 
 ---
 
@@ -194,7 +194,7 @@ https://cv-chatbot-api.azurewebsites.net/api/chat
 Go to:
 
 Function App → Functions → chat → Code + Test  
-Replace **everything** in `index.js` with:
+Replace **everything** in `index.js` with the code below & your github URL for  "Access-Control-Allow-Origin": "https://yourname.github.io",  
 
 '''
 // api/chat/index.js (CommonJS)
@@ -203,7 +203,7 @@ Replace **everything** in `index.js` with:
 module.exports = async function (context, req) {
   // --- CORS (GitHub Pages) ---
   const corsHeaders = {
-    "Access-Control-Allow-Origin": "https://juliabaucher.github.io",
+    "Access-Control-Allow-Origin": "https://juliabaucher.github.io",  
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age": "86400"
@@ -230,7 +230,7 @@ module.exports = async function (context, req) {
     }
 
     // --- Env vars ---
-    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;      // e.g. https://<name>.openai.azure.com
+    const endpoint = process.env.AZURE_OPENAI_ENDPOINT;      // your endpoint name
     const apiKey = process.env.AZURE_OPENAI_API_KEY;
     const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;  // your deployment name
     const system = process.env.SYSTEM_MESSAGE || "You are a helpful CV assistant.";
@@ -330,7 +330,7 @@ Add:
 Name  
 AZURE_OPENAI_ENDPOINT  
 Value  
-https://cv-chatbot-openai.cognitiveservices.azure.com/
+https://chatbot-yourname-instance.cognitiveservices.azure.com/
 
 Name  
 AZURE_OPENAI_API_KEY  
@@ -366,7 +366,7 @@ Function App → API → CORS
 
 Add allowed origin:
 
-https://yourusername.github.io
+https://yourname.github.io
 
 Do NOT:
 - Enable Access-Control-Allow-Credentials
@@ -384,7 +384,7 @@ Functions → chat → Get Function URL
 
 Copy:
 
-https://cv-chatbot-api.azurewebsites.net/api/chat
+https://chatbot-yourname-function.azurewebsites.net/api/chat
 
 This is your permanent backend endpoint.
 
@@ -396,7 +396,7 @@ This is your permanent backend endpoint.
 
 
 <script>  
-const API_URL = "YOUR API URL"; // const API_URL = "https://cv-chatbot-api.azurewebsites.net/api/chat";  
+const API_URL = "YOUR API URL"; // const API_URL = "https://chatbot-yourname-function.azurewebsites.net/api/chat";  
 </script>  
 
 '''
