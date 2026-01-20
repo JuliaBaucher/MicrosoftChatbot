@@ -373,7 +373,7 @@ This is your permanent backend endpoint.
 
 ## 8) Create the frontend (index.html)
 
-'''
+```
 <!DOCTYPE html>
 <html>
 <head>
@@ -404,7 +404,7 @@ async function ask() {
 </script>
 </body>
 </html>
-'''
+```
 
 ---
 
