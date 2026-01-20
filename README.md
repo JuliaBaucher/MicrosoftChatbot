@@ -206,7 +206,7 @@ Go to:
 Function App → Functions → chat → Code + Test  
 Replace **everything** in `index.js` with:
 
-'''
+```
 module.exports = async function (context, req) {
   const corsHeaders = {
     "Access-Control-Allow-Origin": "https://yourusername.github.io",
@@ -291,7 +291,7 @@ module.exports = async function (context, req) {
     };
   }
 };
-'''
+```
 
 Click **Save**  
 Save = Deploy (no package.json required)
